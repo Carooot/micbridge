@@ -43,8 +43,10 @@ do {
     }
     try checked(AudioQueueStart(queue!, nil), "开始虚拟输入测试")
     print("READY"); fflush(stdout)
-    Thread.sleep(forTimeInterval: 4)
+    let usageOnly = CommandLine.arguments.contains("--usage-only")
+    Thread.sleep(forTimeInterval: usageOnly ? 1.5 : 4)
     AudioQueueStop(queue!, true); AudioQueueDispose(queue!, true); queue = nil
+    if usageOnly { print("PASS: input stream opened and released"); exit(0) }
     let frequency = Double(probe.crossings) * 48000 / Double(max(1, probe.active))
     guard probe.active > 48000, (2500...4000).contains(probe.peak), (900...1100).contains(frequency), probe.latePeak < 50
     else { throw MicError(message: "未检测到预期的测试音或静音：peak=\(probe.peak), samples=\(probe.active), estimate=\(Int(frequency))Hz, latePeak=\(probe.latePeak)") }

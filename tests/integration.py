@@ -24,7 +24,7 @@ def line(sock):
         if b == b'\n': break
     return bytes(value)
 
-def connect(hello=b'MICBRIDGE2\n'):
+def connect(hello=b'MICBRIDGE3\n'):
     sock = socket.create_connection(('127.0.0.1', 18769), timeout=3)
     sock.sendall(hello)
     return sock, line(sock)

@@ -1,7 +1,7 @@
 import Foundation
 
 struct HelloParser {
-    static let hello = Data("MICBRIDGE2\n".utf8)
+    static let hello = Data("MICBRIDGE3\n".utf8)
     private var pending = Data()
     mutating func feed(_ data: Data) throws -> Data? {
         pending.append(data)

@@ -9,10 +9,10 @@ namespace MicBridge
 {
     internal sealed class Connection : IDisposable
     {
-        readonly TcpClient socket;readonly Action<string> failed;int closed;
+        readonly TcpClient socket;readonly Action<string> failed;readonly Action<bool> requested;int closed;
         public readonly AudioOutbox Outbox=new AudioOutbox();
-        Connection(TcpClient socket,Action<string> failed) {this.socket=socket;this.failed=failed;}
-        public static Connection Open(Action<string> failed)
+        Connection(TcpClient socket,Action<string> failed,Action<bool> requested) {this.socket=socket;this.failed=failed;this.requested=requested;}
+        public static Connection Open(Action<string> failed,Action<bool> requested)
         {
             var socket=new TcpClient {NoDelay=true,SendTimeout=2000,ReceiveTimeout=5000,SendBufferSize=4096};
             try
@@ -22,7 +22,7 @@ namespace MicBridge
                 task.GetAwaiter().GetResult();var stream=socket.GetStream();stream.Write(Wire.Hello,0,Wire.Hello.Length);
                 string reply=Wire.ReadLine(stream);
                 if(reply!="OK") throw new IOException(reply.StartsWith("ERROR ")?reply.Substring(6):"两端版本不同，请一起升级。");
-                return new Connection(socket,failed);
+                return new Connection(socket,failed,requested);
             }
             catch(AggregateException e) {socket.Close();throw new IOException("连接失败，请检查 Mac 接收器和 UU 端口直连。",e.InnerException);}
             catch(SocketException e) {socket.Close();throw new IOException("无法连接 Mac，请检查 UU 端口直连 18768。",e);}
@@ -48,6 +48,7 @@ namespace MicBridge
                 {
                     string reply=Wire.ReadLine(stream);
                     if(reply.StartsWith("ERROR ")) {Fail(reply.Substring(6));return;}
+                    if(reply=="CAPTURE 1" || reply=="CAPTURE 0") {requested(reply=="CAPTURE 1");continue;}
                     if(reply!="PONG" && reply!="STARTED" && reply!="STOPPED") throw new IOException("未知的接收端响应。");
                 }
             }

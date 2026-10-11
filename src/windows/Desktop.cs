@@ -1,6 +1,6 @@
 using System;
 using System.Drawing;
-using System.Runtime.InteropServices;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -10,129 +10,145 @@ namespace MicBridge
 {
     internal sealed class Sender : Form
     {
-        const int StartMessage=0x8001,StopMessage=0x8002;
-        delegate IntPtr KeyboardProc(int code,IntPtr w,IntPtr l);
-        [DllImport("user32.dll",SetLastError=true)] static extern IntPtr SetWindowsHookEx(int id,KeyboardProc callback,IntPtr module,uint thread);
-        [DllImport("user32.dll")] static extern bool UnhookWindowsHookEx(IntPtr hook);
-        [DllImport("user32.dll")] static extern IntPtr CallNextHookEx(IntPtr hook,int code,IntPtr w,IntPtr l);
-        [DllImport("kernel32.dll",CharSet=CharSet.Unicode)] static extern IntPtr GetModuleHandle(string name);
-        [DllImport("user32.dll")] static extern bool PostMessage(IntPtr window,int msg,IntPtr w,IntPtr l);
-        readonly ComboBox devices=new ComboBox {DropDownStyle=ComboBoxStyle.DropDownList,Width=490,AccessibleName="选择麦克风"};
-        readonly ComboBox keyChoice=new ComboBox {DropDownStyle=ComboBoxStyle.DropDownList,Width=120,AccessibleName="按住说话快捷键"};
-        readonly Button refresh=new Button {Text="刷新麦克风",AutoSize=true};
-        readonly Button connect=new Button {Text="连接 Mac",AutoSize=true};
-        readonly Label state=new Label {Text="尚未连接 · 麦克风关闭",AutoSize=true,MaximumSize=new Size(490,90)};
-        readonly ProgressBar meter=new ProgressBar {Width=490,Maximum=32768};
+        readonly Button connect=UI.Button("连接 Mac"),pause=UI.Button("暂停联动"),settings=UI.Button("设置");
+        readonly Label headline=UI.Label("准备连接",25,true),detail=UI.Label("连接后，只在 Mac 的语音应用收音时打开麦克风。",11),
+            status=UI.Label("未连接",10,true),deviceLabel=UI.Label("",10),elapsed=UI.Label("麦克风关闭",10),notice=UI.Label("",10);
+        readonly ProgressBar meter=new ProgressBar {Dock=DockStyle.Fill,Maximum=32768,Height=8};
         readonly NotifyIcon tray;
         readonly System.Windows.Forms.Timer timer=new System.Windows.Forms.Timer {Interval=100};
-        readonly KeyboardProc keyboard;readonly IntPtr hook;
+        readonly CaptureDemand demand=new CaptureDemand();
+        readonly string preferenceFile=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"MicBridge","settings.ini");
+        Preferences preferences=new Preferences();
         Connection connection;Recorder recorder;
-        bool busy,closing,held,blocked;int selectedKey=0x77,peak;long generation;DateTime started;
+        bool busy,closing,exiting,editing;int peak;long generation;DateTime started;
 
         public Sender()
         {
-            Text="MicBridge · Windows 麦克风";ClientSize=new Size(550,450);StartPosition=FormStartPosition.CenterScreen;
-            FormBorderStyle=FormBorderStyle.FixedDialog;MaximizeBox=false;
-            Font=new Font("Microsoft YaHei UI",10);AutoScaleMode=AutoScaleMode.Dpi;
-            var layout=new FlowLayoutPanel {Dock=DockStyle.Fill,FlowDirection=FlowDirection.TopDown,WrapContents=false,Padding=new Padding(22),AutoScroll=true};Controls.Add(layout);
-            layout.Controls.Add(new Label {Text="按住说话，松开停止",Font=new Font(Font.FontFamily,17,FontStyle.Bold),AutoSize=true,Margin=new Padding(0,0,0,12)});
-            layout.Controls.Add(new Label {Text="UU 端口直连：本地 18768 → Mac 127.0.0.1:18768",AutoSize=true});
-            layout.Controls.Add(new Label {Text="麦克风",AutoSize=true,Margin=new Padding(0,12,0,4)});
-            layout.Controls.Add(devices);layout.Controls.Add(refresh);
-            layout.Controls.Add(new Label {Text="按住说话快捷键（连接后生效）",AutoSize=true,Margin=new Padding(0,8,0,4)});
-            keyChoice.Items.AddRange(new object[]{"F8","F9","F10"});keyChoice.SelectedIndex=0;
-            layout.Controls.Add(keyChoice);layout.Controls.Add(connect);layout.Controls.Add(state);layout.Controls.Add(meter);
-            layout.Controls.Add(new Label {Text="连接只待命。按住快捷键才打开麦克风，松开即释放。\n可以最小化到后台；Mac 的输入设备选 BlackHole 2ch。",AutoSize=true,Margin=new Padding(0,14,0,0)});
-            RefreshDevices();refresh.Click+=delegate {RefreshDevices();};
-            keyChoice.SelectedIndexChanged+=delegate {selectedKey=0x77+keyChoice.SelectedIndex;};
-            connect.Click+=delegate {ToggleConnection();};
-            var menu=new ContextMenuStrip();
-            menu.Items.Add("显示窗口",null,delegate {Show();WindowState=FormWindowState.Normal;Activate();});
-            menu.Items.Add("连接 / 断开 Mac",null,delegate {ToggleConnection();});menu.Items.Add("退出",null,delegate {Close();});
+            UI.Window(this,"MicBridge · Windows",520,460);
+            var root=UI.Column(22);Controls.Add(root);
+            var header=new TableLayoutPanel {Dock=DockStyle.Top,AutoSize=true,ColumnCount=2,Margin=new Padding(0,0,0,24)};
+            header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));header.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            var brand=UI.Column(0);brand.Controls.Add(UI.Label("MicBridge",20,true));brand.Controls.Add(UI.Label("Windows 麦克风",10));
+            header.Controls.Add(brand,0,0);header.Controls.Add(settings,1,0);root.Controls.Add(header);
+            var card=UI.Column(22);card.BackColor=Color.White;card.Margin=new Padding(0,0,0,18);
+            status.ForeColor=UI.Accent;card.Controls.Add(status);headline.Margin=new Padding(0,14,0,8);card.Controls.Add(headline);
+            detail.MaximumSize=new Size(426,0);detail.ForeColor=UI.Muted;card.Controls.Add(detail);
+            meter.Margin=new Padding(0,24,0,10);card.Controls.Add(meter);card.Controls.Add(elapsed);
+            pause.Dock=DockStyle.Top;pause.Margin=new Padding(0,18,0,0);card.Controls.Add(pause);root.Controls.Add(card);
+            var footer=new TableLayoutPanel {Dock=DockStyle.Top,AutoSize=true,ColumnCount=2};
+            footer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));footer.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            deviceLabel.MaximumSize=new Size(320,0);footer.Controls.Add(deviceLabel,0,0);footer.Controls.Add(connect,1,0);root.Controls.Add(footer);
+            notice.ForeColor=Color.FromArgb(170,70,30);notice.MaximumSize=new Size(470,0);notice.Margin=new Padding(0,12,0,0);root.Controls.Add(notice);
+            try {if(File.Exists(preferenceFile)) preferences=Preferences.Decode(File.ReadAllText(preferenceFile));}
+            catch(IOException) {notice.Text="设置未能读取，本次使用默认麦克风。";}catch(UnauthorizedAccessException) {notice.Text="设置未能读取，本次使用默认麦克风。";}
+            connect.Click+=delegate {ToggleConnection();};pause.Click+=delegate {demand.Pause(!demand.Paused);ApplyCapture();};settings.Click+=delegate {OpenSettings();};
+            var menu=new ContextMenuStrip();menu.Items.Add("显示窗口",null,delegate {ShowWindow();});
+            menu.Items.Add("暂停 / 恢复联动",null,delegate {if(connection!=null) {demand.Pause(!demand.Paused);ApplyCapture();}});
+            menu.Items.Add("退出",null,delegate {exiting=true;Close();});
             tray=new NotifyIcon {Icon=SystemIcons.Application,Text="MicBridge · 未连接",Visible=true,ContextMenuStrip=menu};
-            tray.DoubleClick+=delegate {Show();WindowState=FormWindowState.Normal;Activate();};
-            var handle=Handle;keyboard=Keyboard;hook=SetWindowsHookEx(13,keyboard,GetModuleHandle(null),0);
-            if(hook==IntPtr.Zero) {state.Text="无法启用快捷键，请退出后重新打开。";connect.Enabled=false;}
-            timer.Tick+=delegate {meter.Value=peak;peak=0;if(recorder!=null && (DateTime.UtcNow-started).TotalSeconds>=120) {Release();state.Text="单次最长 2 分钟。松开按键后重新按住继续。";}};timer.Start();
+            tray.DoubleClick+=delegate {ShowWindow();};
+            timer.Tick+=delegate {meter.Value=Math.Min(32768,peak);peak=0;if(recorder!=null) elapsed.Text="正在传输  "+(DateTime.UtcNow-started).ToString(@"mm\:ss");};timer.Start();
             SystemEvents.SessionSwitch+=SessionChanged;SystemEvents.PowerModeChanged+=PowerChanged;
+            Render();UI.Fit(this,root);
         }
-        void RefreshDevices()
+        void ShowWindow() {Show();WindowState=FormWindowState.Normal;Activate();}
+        void Render()
         {
-            string old=devices.SelectedItem==null?"":devices.SelectedItem.ToString();
-            try {devices.Items.Clear();foreach(var d in Recorder.Devices()) devices.Items.Add(d);devices.SelectedIndex=0;
-                for(int i=0;i<devices.Items.Count;i++) if(devices.Items[i].ToString()==old) devices.SelectedIndex=i;}
-            catch(Exception e) {state.Text=e.Message;}
+            connect.Text=connection==null?"连接 Mac":"断开连接";connect.Enabled=!busy;pause.Enabled=connection!=null;
+            pause.Text=demand.Paused?"恢复自动联动":"暂停联动";
+            deviceLabel.Text=string.IsNullOrEmpty(preferences.Device)?"麦克风：跟随 Windows 默认设备":"麦克风："+preferences.Device;
+            status.Text=connection==null?(busy?"连接中":"未连接"):(demand.Paused?"已暂停":"已连接 Mac");
+            headline.Text=recorder!=null?"正在传输声音":connection==null?"准备连接":demand.Paused?"麦克风已暂停":"等待 Mac 语音输入";
+            detail.Text=recorder!=null?"继续使用 Mac 的语音快捷键。语音应用结束收音后，会自动关闭麦克风。":connection==null?"连接后，只在 Mac 的语音应用收音时打开麦克风。":demand.Paused?"已关闭麦克风。恢复后，继续跟随 Mac 的收音状态。":"照常唤起豆包或其他语音应用，无需额外按键。";
+            if(recorder==null) elapsed.Text="麦克风关闭";
+            tray.Text=recorder!=null?"MicBridge · 正在传输声音":"MicBridge · 麦克风关闭";
         }
         async void ToggleConnection()
         {
-            if(busy || closing || hook==IntPtr.Zero) return;
-            if(connection!=null) {Disconnect("已断开 · 麦克风关闭");return;}
-            busy=true;connect.Enabled=false;state.Text="正在连接 Mac…";long current=++generation;
+            if(busy || closing || editing) return;
+            if(connection!=null) {Disconnect("");return;}
+            busy=true;notice.Text="";Render();long current=++generation;
             try
             {
-                var opened=await Task.Run(()=>Connection.Open(message=>PostFailure(current,message)));
+                var opened=await Task.Run(()=>Connection.Open(message=>Post(current,()=>Disconnect(message)),active=>Post(current,()=>{demand.Request(active);ApplyCapture();})));
                 if(closing || generation!=current) {opened.Dispose();return;}
-                connection=opened;connection.Run();connect.Text="断开 Mac";keyChoice.Enabled=false;
-                state.Text="已连接 · 按住 "+keyChoice.Text+" 说话 · 麦克风关闭";tray.Text="MicBridge · 待命，麦克风关闭";
+                connection=opened;demand.Reset();connection.Run();
             }
             catch(Exception e) {Disconnect(e.Message);}
-            finally {busy=false;if(!closing) connect.Enabled=true;}
+            finally {busy=false;if(!closing) Render();}
         }
-        void PostFailure(long current,string message)
+        void Post(long current,Action action)
         {
             if(closing || !IsHandleCreated) return;
-            try {BeginInvoke((Action)(()=>{if(current==generation) {Disconnect(message);tray.ShowBalloonTip(3500,"MicBridge",message,ToolTipIcon.Warning);}}));}catch(InvalidOperationException) {}
+            try {BeginInvoke((Action)(()=>{if(!closing && current==generation) action();}));}catch(InvalidOperationException) {}
         }
-        IntPtr Keyboard(int code,IntPtr w,IntPtr l)
+        void ApplyCapture()
         {
-            if(code>=0 && (connection!=null || blocked) && Marshal.ReadInt32(l)==selectedKey)
+            if(connection!=null && demand.Active && recorder==null)
             {
-                int message=w.ToInt32();
-                if(message==0x100 || message==0x104) {if(!held && !blocked) {held=true;PostMessage(Handle,StartMessage,IntPtr.Zero,IntPtr.Zero);}return new IntPtr(1);}
-                if(message==0x101 || message==0x105) {held=false;blocked=false;PostMessage(Handle,StopMessage,IntPtr.Zero,IntPtr.Zero);return new IntPtr(1);}
+                try
+                {
+                    var devices=Recorder.Devices();var selected=devices[0];
+                    if(!string.IsNullOrEmpty(preferences.Device))
+                    {selected=devices.Find(d=>d.Name==preferences.Device);if(selected==null) throw new IOException("所选麦克风已断开，请在设置中重新选择。");}
+                    connection.Outbox.Begin();recorder=new Recorder(Handle,selected.Id);started=DateTime.UtcNow;notice.Text="";
+                }
+                catch(Exception e) {Disconnect(e.Message);return;}
             }
-            return CallNextHookEx(hook,code,w,l);
-        }
-        void StartCapture()
-        {
-            if(connection==null || recorder!=null || !held || blocked) return;
-            try
-            {
-                var device=devices.SelectedItem as Recorder.Device;if(device==null) throw new InvalidOperationException("请选择麦克风。");
-                connection.Outbox.Begin();recorder=new Recorder(Handle,device.Id);started=DateTime.UtcNow;
-                devices.Enabled=refresh.Enabled=false;state.Text="正在传输 · 松开即停止";tray.Text="MicBridge · 麦克风正在传输";
-            }
-            catch(Exception e) {Release();state.Text=e.Message;}
+            else if(!demand.Active || connection==null) EndCapture();
+            Render();
         }
         void EndCapture()
         {
-            if(recorder!=null) {recorder.Dispose();recorder=null;}
-            if(connection!=null) {connection.Outbox.End();state.Text="已连接 · 麦克风关闭";tray.Text="MicBridge · 待命，麦克风关闭";}
-            devices.Enabled=refresh.Enabled=true;peak=0;meter.Value=0;
+            if(recorder!=null) {recorder.Dispose();recorder=null;if(connection!=null) connection.Outbox.End();}
+            peak=0;meter.Value=0;
         }
-        void Release() {blocked|=held;held=false;EndCapture();}
         void Disconnect(string message)
-        {++generation;Release();if(connection!=null) {connection.Dispose();connection=null;}keyChoice.Enabled=!blocked;connect.Text="连接 Mac";state.Text=message;tray.Text="MicBridge · 未连接";}
-        void SessionChanged(object sender,SessionSwitchEventArgs e) {if(e.Reason==SessionSwitchReason.SessionLock) PostFailure(generation,"电脑已锁定，连接已断开。");}
-        void PowerChanged(object sender,PowerModeChangedEventArgs e) {if(e.Mode==PowerModes.Suspend) PostFailure(generation,"电脑休眠，连接已断开。");}
+        {++generation;demand.Reset();EndCapture();if(connection!=null) {connection.Dispose();connection=null;}notice.Text=message;Render();}
+        void OpenSettings()
+        {
+            if(editing || busy) return;editing=true;bool wasPaused=demand.Paused;demand.Pause(true);ApplyCapture();
+            try
+            {
+                using(var dialog=new SettingsDialog(preferences))
+                {
+                    if(dialog.ShowDialog(this)==DialogResult.OK)
+                    {
+                        var next=dialog.Value;Directory.CreateDirectory(Path.GetDirectoryName(preferenceFile));string temp=preferenceFile+".tmp";
+                        File.WriteAllText(temp,next.Encode());if(File.Exists(preferenceFile)) File.Replace(temp,preferenceFile,null);else File.Move(temp,preferenceFile);
+                        preferences=next;notice.Text="设置已保存。";
+                    }
+                }
+            }
+            catch(Exception e) {notice.Text="设置未保存："+e.Message;}
+            finally {editing=false;demand.Pause(wasPaused);ApplyCapture();}
+        }
+        void SessionChanged(object sender,SessionSwitchEventArgs e) {if(e.Reason==SessionSwitchReason.SessionLock) Post(generation,()=>Disconnect("电脑已锁定，连接已断开。"));}
+        void PowerChanged(object sender,PowerModeChangedEventArgs e) {if(e.Mode==PowerModes.Suspend) Post(generation,()=>Disconnect("电脑休眠，连接已断开。"));}
         protected override void WndProc(ref Message m)
         {
-            if(m.Msg==StartMessage) {StartCapture();return;}
-            if(m.Msg==StopMessage) {EndCapture();if(connection==null) keyChoice.Enabled=true;return;}
             if(m.Msg==0x3C0 && recorder!=null)
             {try {var bytes=recorder.Accept(m.WParam,m.LParam);if(bytes!=null && bytes.Length>0) {peak=Math.Max(peak,Wire.Peak(bytes));connection.Outbox.Add(bytes);}}catch(Exception e) {Disconnect(e.Message);}return;}
             base.WndProc(ref m);
         }
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
-            closing=true;timer.Stop();Disconnect("已退出");SystemEvents.SessionSwitch-=SessionChanged;SystemEvents.PowerModeChanged-=PowerChanged;
-            if(hook!=IntPtr.Zero) UnhookWindowsHookEx(hook);tray.Dispose();timer.Dispose();base.OnFormClosing(e);
+            if(!exiting && e.CloseReason==CloseReason.UserClosing && preferences.Background) {e.Cancel=true;Hide();return;}
+            closing=true;timer.Stop();Disconnect("");SystemEvents.SessionSwitch-=SessionChanged;SystemEvents.PowerModeChanged-=PowerChanged;
+            tray.Dispose();timer.Dispose();base.OnFormClosing(e);
         }
-        [STAThread] static void Main()
+        [STAThread] static void Main(string[] args)
         {
+            Application.EnableVisualStyles();Application.SetCompatibleTextRenderingDefault(false);
+            if(args.Length==2 && args[0]=="--preview")
+            {
+                Directory.CreateDirectory(args[1]);
+                using(var form=new Sender()) {form.Show();Application.DoEvents();UI.Snapshot(form,Path.Combine(args[1],"Windows-main.png"));
+                    using(var dialog=new SettingsDialog(new Preferences())) {dialog.Show();Application.DoEvents();UI.Snapshot(dialog,Path.Combine(args[1],"Windows-settings.png"));}
+                    form.exiting=true;form.Close();}return;
+            }
             bool created;using(var mutex=new Mutex(true,"Local\\MicBridgeSender",out created))
             {if(!created) {MessageBox.Show("MicBridge 已在运行，请在任务栏右下角找到它。","MicBridge");return;}
-                Application.EnableVisualStyles();Application.SetCompatibleTextRenderingDefault(false);
                 try {Application.Run(new Sender());}catch(Exception e) {MessageBox.Show(e.Message,"MicBridge 启动失败");}}
         }
     }

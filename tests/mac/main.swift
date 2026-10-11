@@ -1,8 +1,16 @@
 import Foundation
 
+var demand = DemandGate()
+precondition(!demand.update(false, now: 10))
+precondition(demand.update(true, now: 11))
+precondition(demand.update(false, now: 11.2))
+precondition(!demand.update(false, now: 11.3))
+precondition(demand.update(true, now: 12))
+demand.reset(); precondition(!demand.update(false, now: 12.1))
+
 var hello = HelloParser()
 precondition(try! hello.feed(Data("MIC".utf8)) == nil)
-precondition(try! hello.feed(Data("BRIDGE2\n".utf8) + Data([254, 255])) == Data([254, 255]))
+precondition(try! hello.feed(Data("BRIDGE3\n".utf8) + Data([254, 255])) == Data([254, 255]))
 var wrong = HelloParser()
 do { _ = try wrong.feed(Data("UUMIC1 12345678\n".utf8)); fatalError("accepted old protocol") } catch {}
 let stream = Data([254,255, 4,0, 0xff,0x7f,0,0x80, 0,0, 255,255])

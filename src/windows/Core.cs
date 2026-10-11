@@ -6,9 +6,35 @@ using System.Threading;
 
 namespace MicBridge
 {
+    internal sealed class CaptureDemand
+    {
+        public bool Requested {get; private set;}
+        public bool Paused {get; private set;}
+        public bool Active {get {return Requested && !Paused;}}
+        public void Request(bool active) {Requested=active;}
+        public void Pause(bool pause) {Paused=pause;}
+        public void Reset() {Requested=false;}
+    }
+    internal sealed class Preferences
+    {
+        public string Device="";
+        public bool Background=true;
+        public string Encode() {return "background="+(Background?"1":"0")+"\ndevice="+Convert.ToBase64String(Encoding.UTF8.GetBytes(Device))+"\n";}
+        public static Preferences Decode(string text)
+        {
+            var p=new Preferences();if(text.Length>4096) return p;
+            foreach(string row in text.Split('\n'))
+            {
+                int eq=row.IndexOf('=');if(eq<0) continue;string name=row.Substring(0,eq),value=row.Substring(eq+1).Trim();
+                if(name=="background") p.Background=value!="0";
+                if(name=="device") try {p.Device=new UTF8Encoding(false,true).GetString(Convert.FromBase64String(value));}catch(FormatException) {}catch(DecoderFallbackException) {}
+            }
+            return p;
+        }
+    }
     internal static class Wire
     {
-        public static readonly byte[] Hello=Encoding.ASCII.GetBytes("MICBRIDGE2\n");
+        public static readonly byte[] Hello=Encoding.ASCII.GetBytes("MICBRIDGE3\n");
         public static readonly byte[] Start={254,255}, Stop={0,0}, Ping={255,255};
         public static byte[] Audio(byte[] pcm)
         {
@@ -36,7 +62,7 @@ namespace MicBridge
             return peak;
         }
     }
-    // Key release discards queued speech before STOP; the worker can hold at most one extra 20 ms frame.
+    // Ending capture discards queued speech before STOP; the worker can hold at most one extra 20 ms frame.
     internal sealed class AudioOutbox
     {
         readonly object gate=new object();readonly Queue<byte[]> frames=new Queue<byte[]>();

@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.0 — 2026-10-12
+
+- Automatically follow the selected Mac application’s active BlackHole input stream. Windows opens its microphone only when requested and closes it after input stops.
+- Removed F8/F9/F10 hooks and the separate hold-to-talk control; use the speech application’s existing shortcut or button.
+- Added native settings for the Windows microphone, the Mac application to follow, and background operation. Refreshed both interfaces with clearer connection and capture states.
+- Added manual pause, persistent settings, real TCP control tests, and input-driven BlackHole integration tests that reject output feedback.
+- Protocol v3 requires both endpoints to upgrade. The Mac receiver now requires macOS 14.2 or newer.
+
 ## 1.0.0 — 2026-10-12
 
 First public release of MicBridge.
