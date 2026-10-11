@@ -5,7 +5,6 @@ import plistlib
 import shutil
 import subprocess
 import tempfile
-import urllib.request
 import zipfile
 from build import ROOT, VERSION, run
 
@@ -15,10 +14,16 @@ SOURCE_COMMIT='e2b22aaaba4e507a097131704bf96dabc004d9cf'
 
 def download(url, path, digest):
     if not path.exists():
-        with urllib.request.urlopen(url,timeout=60) as response: data=response.read(20_000_001)
-        if len(data)>20_000_000 or hashlib.sha256(data).hexdigest()!=digest:
-            raise RuntimeError('Upstream download failed integrity check: '+path.name)
-        path.write_bytes(data)
+        temporary=path.with_suffix(path.suffix+'.download')
+        try:
+            run('curl','--fail','--location','--silent','--show-error','--connect-timeout','15',
+                '--max-time','60','--max-filesize','20000000','--retry','2',url,'--output',temporary)
+            data=temporary.read_bytes()
+            if len(data)>20_000_000 or hashlib.sha256(data).hexdigest()!=digest:
+                raise RuntimeError('Upstream download failed integrity check: '+path.name)
+            temporary.replace(path)
+        finally:
+            if temporary.exists(): temporary.unlink()
     if hashlib.sha256(path.read_bytes()).hexdigest()!=digest:
         raise RuntimeError('Cached download failed integrity check: '+path.name)
 

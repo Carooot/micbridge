@@ -36,7 +36,7 @@ namespace MicBridge
             headline.Font=new Font("Microsoft YaHei UI",21,FontStyle.Bold);headline.Margin=new Padding(0,18,0,10);headline.MaximumSize=new Size(370,0);card.Controls.Add(headline);
             detail.MaximumSize=new Size(370,0);detail.ForeColor=UI.Muted;detail.MinimumSize=new Size(0,48);card.Controls.Add(detail);
             meter.Margin=new Padding(0,22,0,8);card.Controls.Add(meter);elapsed.ForeColor=UI.Muted;card.Controls.Add(elapsed);
-            var actions=new TableLayoutPanel {Dock=DockStyle.Top,AutoSize=true,ColumnCount=2,Margin=new Padding(0,24,0,0)};
+            var actions=new TableLayoutPanel {Dock=DockStyle.Top,Height=44,ColumnCount=2,Margin=new Padding(0,24,0,0)};
             actions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,58));actions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,42));
             UI.Primary(connect);connect.Dock=DockStyle.Fill;connect.Margin=new Padding(0,0,10,0);pause.Dock=DockStyle.Fill;
             actions.Controls.Add(connect,0,0);actions.Controls.Add(pause,1,0);card.Controls.Add(actions);root.Controls.Add(card);
