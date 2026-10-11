@@ -1,0 +1,44 @@
+name: Build and test
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mac:
+    runs-on: macos-15
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Build universal app and test protocol
+        run: python3 scripts/build.py mac
+      - name: Exercise real TCP protocol without audio hardware
+        run: python3 tests/integration.py
+      - name: Package
+        run: python3 scripts/package.py mac
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MicBridge-macOS
+          path: dist/*
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Build sender and test queue and protocol
+        run: python scripts/build.py windows
+      - name: Package
+        run: python scripts/package.py windows
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MicBridge-Windows
+          path: dist/*
