@@ -5,10 +5,11 @@ import os
 import pathlib
 import platform
 import plistlib
+import shutil
 import subprocess
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-VERSION = '1.1.0'
+VERSION = '1.2.0'
 
 def run(*args):
     subprocess.run([str(a) for a in args], cwd=ROOT, check=True)
@@ -27,9 +28,11 @@ def mac():
     (bundle/'Contents/Info.plist').write_bytes(plistlib.dumps({
         'CFBundleExecutable':'MicBridge', 'CFBundleIdentifier':'io.github.carooot.micbridge',
         'CFBundleName':'MicBridge', 'CFBundleDisplayName':'MicBridge', 'CFBundlePackageType':'APPL',
-        'CFBundleShortVersionString':VERSION, 'CFBundleVersion':'2',
+        'CFBundleShortVersionString':VERSION, 'CFBundleVersion':'3', 'CFBundleIconFile':'MicBridge',
         'LSMinimumSystemVersion':'14.2', 'NSHighResolutionCapable':True,
     }))
+    (bundle/'Contents/Resources').mkdir(exist_ok=True)
+    shutil.copy(ROOT/'assets/MicBridge.icns',bundle/'Contents/Resources/MicBridge.icns')
     run('codesign', '--force', '--sign', '-', '--identifier', 'io.github.carooot.micbridge', bundle)
     run('codesign', '--verify', '--strict', bundle)
     run('swiftc', '-swift-version', '5', '-module-cache-path', cache,
@@ -43,7 +46,8 @@ def windows():
     csc = pathlib.Path(os.environ['WINDIR'])/'Microsoft.NET/Framework64/v4.0.30319/csc.exe'
     refs = ['/r:'+name+'.dll' for name in ['System','System.Core','System.Windows.Forms','System.Drawing']]
     run(csc, '/nologo', '/codepage:65001', '/target:winexe', '/platform:x64', '/optimize+', '/warnaserror+',
-        '/out:'+str(out/'MicBridge.exe'), *refs, *sorted((ROOT/'src/windows').glob('*.cs')))
+        '/out:'+str(out/'MicBridge.exe'), '/win32icon:'+str(ROOT/'assets/MicBridge.ico'),
+        '/resource:'+str(ROOT/'assets/MicBridge.ico')+',MicBridge.ico', '/resource:'+str(ROOT/'assets/MicBridge.png')+',MicBridge.png', *refs, *sorted((ROOT/'src/windows').glob('*.cs')))
     (out/'MicBridge.exe.config').write_text('<?xml version="1.0"?><configuration><startup><supportedRuntime version="v4.0" sku=".NETFramework,Version=v4.8"/></startup></configuration>')
     run(csc, '/nologo', '/codepage:65001', '/target:exe', '/out:'+str(out/'CoreTests.exe'), '/r:System.dll', '/r:System.Core.dll',
         ROOT/'src/windows/Core.cs', ROOT/'src/windows/Connection.cs', ROOT/'tests/CoreTests.cs', ROOT/'tests/ConnectionTests.cs')

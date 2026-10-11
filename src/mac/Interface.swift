@@ -54,7 +54,8 @@ extension Receiver {
         box.widthAnchor.constraint(equalToConstant: 492).isActive = true
         box.heightAnchor.constraint(equalTo: content.heightAnchor, constant: 44).isActive = true
         root.addArrangedSubview(box)
-        let footer = label("语音输入用原来的快捷键，MicBridge 自动跟随。\n麦克风：BlackHole 2ch  ·  UU 端口：18768", size: 12)
+        inputButton = NSButton(title: "设为语音输入", target: self, action: #selector(prepareInput)); root.addArrangedSubview(inputButton)
+        let footer = label("通过 UU 远程的端口直连连接 Windows：TCP 18768。\n首次使用点上方按钮，再照常唤起语音输入。", size: 12)
         footer.textColor = .secondaryLabelColor; root.addArrangedSubview(footer)
         renderStatus(); mount(root, in: window)
     }
@@ -85,6 +86,7 @@ extension Receiver {
         let network = label("UU 端口直连  ·  TCP\nWindows 本地 18768 → Mac 127.0.0.1:18768", size: 12)
         network.textColor = .secondaryLabelColor; root.addArrangedSubview(network)
         let buttons = NSStackView()
+        buttons.addArrangedSubview(NSButton(title: "设为语音输入", target: self, action: #selector(prepareInput)))
         buttons.addArrangedSubview(NSButton(title: "重新检查声卡", target: self, action: #selector(checkDevice)))
         buttons.addArrangedSubview(NSButton(title: "完成", target: self, action: #selector(closeSettings))); root.addArrangedSubview(buttons)
         mount(root, in: panel); panel.makeKeyAndOrderFront(nil)

@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.2.0 — 2026-10-12
+
+- Refreshed the Windows window with a focused connection panel, consistent microphone icon, tray icon, executable metadata and a built-in first-connection guide.
+- Added a combined Mac installer for MicBridge and the verified official BlackHole 2ch component. Existing BlackHole installations are skipped; new installations keep the upstream restart requirement.
+- Added a Mac button to select BlackHole as the default input, while leaving speaker output unchanged.
+- Added a single download containing the Windows app, Mac installer and offline Chinese instructions centered on UU Remote TCP port forwarding.
+- Included BlackHole GPL license and corresponding upstream source; added real package installation and repeat-install selection tests on disposable macOS CI.
+- Kept protocol v3 compatible with 1.1.0. The automatic capture flow has now been confirmed by the user on Windows → UU → Mac → Doubao.
+
 ## 1.1.0 — 2026-10-12
 
 - Automatically follow the selected Mac application’s active BlackHole input stream. Windows opens its microphone only when requested and closes it after input stops.

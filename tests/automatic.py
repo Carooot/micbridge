@@ -11,6 +11,11 @@ binary = ROOT/'build/mac/MicBridge.app/Contents/MacOS/MicBridge'
 probe_binary = ROOT/'build/mac/AudioProbe'
 subprocess.run(['swiftc', '-module-cache-path', str(ROOT/'build/swift-cache'),
                 str(ROOT/'src/mac/Audio.swift'), str(ROOT/'tests/audio-probe/main.swift'), '-o', str(probe_binary)], check=True)
+setup_test = ROOT/'build/mac/InputSetupTest'
+subprocess.run(['swiftc', '-module-cache-path', str(ROOT/'build/swift-cache'),
+    str(ROOT/'src/mac/Audio.swift'), str(ROOT/'src/mac/AudioUsage.swift'),
+    str(ROOT/'tests/input-setup/main.swift'), '-o', str(setup_test)], check=True)
+subprocess.run([str(setup_test)], check=True)
 server = subprocess.Popen([str(binary), '--test-server', '--test-follow', '--with-audio'], stderr=subprocess.PIPE)
 probe = None
 sock = None

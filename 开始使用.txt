@@ -1,0 +1,21 @@
+﻿MicBridge 1.2 · 通过 UU 远程连接 Windows 麦克风与 Mac
+
+只需下载这一套，不用分别寻找两端程序和声卡。
+
+1. 在 Windows 解压整个文件夹。把 Mac 文件夹通过 UU 文件传输发到 Mac。
+2. Mac 双击 MicBridge-Mac-Setup.pkg，按安装器提示完成。它包含接收器和 BlackHole 2ch；装过声卡会自动跳过。首次安装声卡可能需要重启，请先保存工作。升级前请先退出旧 MicBridge。
+3. Mac 从“应用程序”打开 MicBridge，点“设为语音输入”。
+4. Windows 的 UU 远程中选择这台 Mac，添加并开启端口直连：
+   协议 TCP；目标地址 127.0.0.1；Mac 目标端口 18768；Windows 本地端口 18768。
+5. Windows 双击 MicBridge.exe，再点“连接 Mac”。照常唤起 Mac 的豆包等语音输入，麦克风自动跟随。
+
+日后使用：打开两端 MicBridge，保持 UU 映射开启，点一次连接即可。
+
+系统要求：Windows 10/11 x64（.NET Framework 4.8），macOS 14.2 或更新。
+驱动安装需要 macOS 管理员确认。整合包暂未商业签名或 Apple 公证；若系统阻止，请在“隐私与安全性”中仅允许这个已核对来源的安装器，不要关闭系统整体安全保护。
+
+这些事仍需你完成：UU 账号登录和端口映射、系统安装确认、首次声卡重启、语音应用自己的麦克风权限。
+MicBridge 不代替 UU 远程，不负责识别文字，也不会一直录音。语音应用若持续占用 BlackHole，传输会持续；可点“暂停联动”。
+
+项目：https://github.com/Carooot/micbridge
+更新：https://github.com/Carooot/micbridge/releases/latest

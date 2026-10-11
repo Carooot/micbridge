@@ -1,5 +1,6 @@
 import Cocoa
 import Network
+import CoreAudio
 
 if CommandLine.arguments.contains("--check-audio") {
     do {let output = AudioOutput(); try output.start(); output.stop(); print("PASS: BlackHole 2ch output")}
@@ -31,7 +32,7 @@ final class Receiver: NSObject, NSApplicationDelegate, NSWindowDelegate {
     var testWithoutAudio = false
     var listenerError: String?
     var pauseButton = NSButton(), settingsPanel: NSPanel?, sourceChoice = NSPopUpButton()
-    var backgroundCheck = NSButton(), followingField = NSTextField(wrappingLabelWithString: "")
+    var backgroundCheck = NSButton(), inputButton = NSButton(), followingField = NSTextField(wrappingLabelWithString: "")
     var usageError: String?, gate = DemandGate(), paused = false
     var followBundle = "", sourceNames = [String](), lastUsageCheck = Date.distantPast
     var useAutomaticFollow = true
@@ -65,8 +66,20 @@ final class Receiver: NSObject, NSApplicationDelegate, NSWindowDelegate {
         } catch { listenerError = error.localizedDescription; statusField.stringValue = error.localizedDescription }
     }
     @objc func checkDevice() {
-        do { _ = try blackHoleUID(); deviceField.stringValue = "BlackHole 2ch · 已就绪" }
-        catch { deviceField.stringValue = error.localizedDescription }
+        do {
+            let device = try blackHoleInputID()
+            let selected = try audioIDs(AudioObjectID(kAudioObjectSystemObject), kAudioHardwarePropertyDefaultInputDevice).first == device
+            deviceField.stringValue = selected ? "BlackHole 2ch · 麦克风已就绪" : "BlackHole 2ch · 已安装"
+            inputButton.title = selected ? "已设为 Mac 语音输入" : "设为语音输入"
+            inputButton.isEnabled = !selected
+        } catch { deviceField.stringValue = error.localizedDescription; inputButton.title = "下载 Mac 整合安装器"; inputButton.isEnabled = true }
+    }
+    @objc func prepareInput() {
+        guard (try? blackHoleInputID()) != nil else {
+            NSWorkspace.shared.open(URL(string: "https://github.com/Carooot/micbridge/releases/latest/download/MicBridge-Mac-Setup.pkg")!); return
+        }
+        do { try useBlackHoleInput(); checkDevice() }
+        catch { let alert = NSAlert(); alert.messageText = "未能设置麦克风"; alert.informativeText = error.localizedDescription; alert.runModal() }
     }
     @objc func showWindow() { window.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true) }
     @objc func quit() { NSApp.terminate(nil) }

@@ -21,7 +21,7 @@ archive = dist/name
 with zipfile.ZipFile(archive, 'w', zipfile.ZIP_DEFLATED, compresslevel=9) as z:
     for path in files:
         if path.is_file(): z.write(path, path.relative_to(source))
-    for doc in ['README.md','LICENSE','CHANGELOG.md']:
+    for doc in ['README.md','LICENSE','CHANGELOG.md','THIRD-PARTY.md','开始使用.txt']:
         z.write(ROOT/doc,doc)
 with zipfile.ZipFile(archive) as z:
     assert z.testzip() is None

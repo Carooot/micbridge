@@ -24,6 +24,10 @@ jobs:
         run: python3 tests/integration.py
       - name: Package
         run: python3 scripts/package.py mac
+      - name: Build combined Mac installer
+        run: python3 scripts/mac_installer.py
+      - name: Verify and install on disposable runner
+        run: python3 tests/installer.py --install
       - uses: actions/upload-artifact@v4
         with:
           name: MicBridge-macOS
@@ -47,9 +51,27 @@ jobs:
         with:
           name: Windows-UI-previews
           path: build/windows/preview/*.png
+  bundle:
+    needs: [mac, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: MicBridge-*
+          path: artifacts
+          merge-multiple: true
+      - name: Build one-download setup bundle
+        run: python3 scripts/bundle.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MicBridge-Setup
+          path: dist/*
   publish:
     if: github.event_name == 'release'
-    needs: [mac, windows]
+    needs: [bundle]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:

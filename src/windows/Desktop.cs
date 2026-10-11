@@ -24,28 +24,34 @@ namespace MicBridge
 
         public Sender()
         {
-            UI.Window(this,"MicBridge · Windows",520,460);
-            var root=UI.Column(22);Controls.Add(root);
-            var header=new TableLayoutPanel {Dock=DockStyle.Top,AutoSize=true,ColumnCount=2,Margin=new Padding(0,0,0,24)};
-            header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));header.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-            var brand=UI.Column(0);brand.Controls.Add(UI.Label("MicBridge",20,true));brand.Controls.Add(UI.Label("Windows 麦克风",10));
-            header.Controls.Add(brand,0,0);header.Controls.Add(settings,1,0);root.Controls.Add(header);
-            var card=UI.Column(22);card.BackColor=Color.White;card.Margin=new Padding(0,0,0,18);
-            status.ForeColor=UI.Accent;card.Controls.Add(status);headline.Margin=new Padding(0,14,0,8);card.Controls.Add(headline);
-            detail.MaximumSize=new Size(426,0);detail.ForeColor=UI.Muted;card.Controls.Add(detail);
-            meter.Margin=new Padding(0,24,0,10);card.Controls.Add(meter);card.Controls.Add(elapsed);
-            pause.Dock=DockStyle.Top;pause.Margin=new Padding(0,18,0,0);card.Controls.Add(pause);root.Controls.Add(card);
-            var footer=new TableLayoutPanel {Dock=DockStyle.Top,AutoSize=true,ColumnCount=2};
-            footer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));footer.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-            deviceLabel.MaximumSize=new Size(320,0);footer.Controls.Add(deviceLabel,0,0);footer.Controls.Add(connect,1,0);root.Controls.Add(footer);
-            notice.ForeColor=Color.FromArgb(170,70,30);notice.MaximumSize=new Size(470,0);notice.Margin=new Padding(0,12,0,0);root.Controls.Add(notice);
+            UI.Window(this,"MicBridge · 远程麦克风",464,490);
+            var root=UI.Column(24);Controls.Add(root);
+            var header=new TableLayoutPanel {Dock=DockStyle.Top,AutoSize=true,ColumnCount=3,Margin=new Padding(0,0,0,24)};
+            header.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));header.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            var logo=new PictureBox {Image=UI.Logo,SizeMode=PictureBoxSizeMode.Zoom,Size=new Size(48,48),Margin=new Padding(0,0,12,0),AccessibleName="MicBridge 图标"};
+            var brand=UI.Column(0);brand.Controls.Add(UI.Label("MicBridge",20,true));var sub=UI.Label("远程麦克风",10);sub.ForeColor=UI.Muted;brand.Controls.Add(sub);
+            header.Controls.Add(logo,0,0);header.Controls.Add(brand,1,0);header.Controls.Add(settings,2,0);root.Controls.Add(header);
+            var card=UI.Column(22);card.BackColor=Color.White;card.Margin=new Padding(0,0,0,16);
+            status.ForeColor=UI.Accent;status.BackColor=UI.Tint;status.Padding=new Padding(9,4,9,4);card.Controls.Add(status);
+            headline.Font=new Font("Microsoft YaHei UI",21,FontStyle.Bold);headline.Margin=new Padding(0,18,0,10);headline.MaximumSize=new Size(370,0);card.Controls.Add(headline);
+            detail.MaximumSize=new Size(370,0);detail.ForeColor=UI.Muted;detail.MinimumSize=new Size(0,48);card.Controls.Add(detail);
+            meter.Margin=new Padding(0,22,0,8);card.Controls.Add(meter);elapsed.ForeColor=UI.Muted;card.Controls.Add(elapsed);
+            var actions=new TableLayoutPanel {Dock=DockStyle.Top,AutoSize=true,ColumnCount=2,Margin=new Padding(0,24,0,0)};
+            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,58));actions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,42));
+            UI.Primary(connect);connect.Dock=DockStyle.Fill;connect.Margin=new Padding(0,0,10,0);pause.Dock=DockStyle.Fill;
+            actions.Controls.Add(connect,0,0);actions.Controls.Add(pause,1,0);card.Controls.Add(actions);root.Controls.Add(card);
+            deviceLabel.MaximumSize=new Size(410,0);deviceLabel.ForeColor=UI.Muted;deviceLabel.Margin=new Padding(0,0,0,12);root.Controls.Add(deviceLabel);
+            var route=UI.Label("Windows  →  UU 远程  →  Mac",10);route.ForeColor=UI.Muted;root.Controls.Add(route);
+            var help=UI.Button("首次使用 / 连接帮助");help.Dock=DockStyle.Top;help.Margin=new Padding(0,14,0,0);
+            help.Click+=delegate {using(var dialog=new SetupDialog()) dialog.ShowDialog(this);};root.Controls.Add(help);
+            notice.ForeColor=Color.FromArgb(165,65,30);notice.MaximumSize=new Size(410,0);notice.Margin=new Padding(0,12,0,0);root.Controls.Add(notice);
             try {if(File.Exists(preferenceFile)) preferences=Preferences.Decode(File.ReadAllText(preferenceFile));}
             catch(IOException) {notice.Text="设置未能读取，本次使用默认麦克风。";}catch(UnauthorizedAccessException) {notice.Text="设置未能读取，本次使用默认麦克风。";}
             connect.Click+=delegate {ToggleConnection();};pause.Click+=delegate {demand.Pause(!demand.Paused);ApplyCapture();};settings.Click+=delegate {OpenSettings();};
             var menu=new ContextMenuStrip();menu.Items.Add("显示窗口",null,delegate {ShowWindow();});
             menu.Items.Add("暂停 / 恢复联动",null,delegate {if(connection!=null) {demand.Pause(!demand.Paused);ApplyCapture();}});
             menu.Items.Add("退出",null,delegate {exiting=true;Close();});
-            tray=new NotifyIcon {Icon=SystemIcons.Application,Text="MicBridge · 未连接",Visible=true,ContextMenuStrip=menu};
+            tray=new NotifyIcon {Icon=UI.AppIcon,Text="MicBridge · 未连接",Visible=true,ContextMenuStrip=menu};
             tray.DoubleClick+=delegate {ShowWindow();};
             timer.Tick+=delegate {meter.Value=Math.Min(32768,peak);peak=0;if(recorder!=null) elapsed.Text="正在传输  "+(DateTime.UtcNow-started).ToString(@"mm\:ss");};timer.Start();
             SystemEvents.SessionSwitch+=SessionChanged;SystemEvents.PowerModeChanged+=PowerChanged;
@@ -55,11 +61,11 @@ namespace MicBridge
         void Render()
         {
             connect.Text=connection==null?"连接 Mac":"断开连接";connect.Enabled=!busy;pause.Enabled=connection!=null;
-            pause.Text=demand.Paused?"恢复自动联动":"暂停联动";
+            pause.Text=demand.Paused?"恢复联动":"暂停联动";
             deviceLabel.Text=string.IsNullOrEmpty(preferences.Device)?"麦克风：跟随 Windows 默认设备":"麦克风："+preferences.Device;
             status.Text=connection==null?(busy?"连接中":"未连接"):(demand.Paused?"已暂停":"已连接 Mac");
-            headline.Text=recorder!=null?"正在传输声音":connection==null?"准备连接":demand.Paused?"麦克风已暂停":"等待 Mac 语音输入";
-            detail.Text=recorder!=null?"继续使用 Mac 的语音快捷键。语音应用结束收音后，会自动关闭麦克风。":connection==null?"连接后，只在 Mac 的语音应用收音时打开麦克风。":demand.Paused?"已关闭麦克风。恢复后，继续跟随 Mac 的收音状态。":"照常唤起豆包或其他语音应用，无需额外按键。";
+            headline.Text=recorder!=null?"正在传输声音":connection==null?"连接你的 Mac":demand.Paused?"麦克风已暂停":"等你开口";
+            detail.Text=recorder!=null?"继续使用 Mac 的语音快捷键。语音应用结束收音后，会自动关闭麦克风。":connection==null?"通过 UU 端口直连，连接后自动跟随 Mac 的语音输入。":demand.Paused?"已关闭麦克风。恢复后，继续跟随 Mac 的收音状态。":"照常唤起豆包或其他语音应用，无需额外按键。";
             if(recorder==null) elapsed.Text="麦克风关闭";
             tray.Text=recorder!=null?"MicBridge · 正在传输声音":"MicBridge · 麦克风关闭";
         }
@@ -145,6 +151,7 @@ namespace MicBridge
                 Directory.CreateDirectory(args[1]);
                 using(var form=new Sender()) {form.Show();Application.DoEvents();UI.Snapshot(form,Path.Combine(args[1],"Windows-main.png"));
                     using(var dialog=new SettingsDialog(new Preferences())) {dialog.Show();Application.DoEvents();UI.Snapshot(dialog,Path.Combine(args[1],"Windows-settings.png"));}
+                    using(var dialog=new SetupDialog()) {dialog.Show();Application.DoEvents();UI.Snapshot(dialog,Path.Combine(args[1],"Windows-setup.png"));}
                     form.exiting=true;form.Close();}return;
             }
             bool created;using(var mutex=new Mutex(true,"Local\\MicBridgeSender",out created))

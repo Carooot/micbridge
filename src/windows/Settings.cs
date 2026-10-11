@@ -1,20 +1,25 @@
 using System;
 using System.Drawing;
 using System.Windows.Forms;
+using System.Reflection;
 
 namespace MicBridge
 {
     internal static class UI
     {
-        public static readonly Color Accent=Color.FromArgb(21,94,83),Muted=Color.FromArgb(94,105,115);
+        public static readonly Color Accent=Color.FromArgb(21,94,83),Muted=Color.FromArgb(100,111,116),Tint=Color.FromArgb(233,242,238);
+        public static readonly Icon AppIcon=new Icon(Assembly.GetExecutingAssembly().GetManifestResourceStream("MicBridge.ico"),32,32);
+        public static readonly Image Logo=Image.FromStream(Assembly.GetExecutingAssembly().GetManifestResourceStream("MicBridge.png"));
         public static void Window(Form form,string title,int width,int height)
-        {form.Text=title;form.Font=new Font("Microsoft YaHei UI",10);form.AutoScaleDimensions=new SizeF(96,96);form.AutoScaleMode=AutoScaleMode.Dpi;
-            form.ClientSize=new Size(width,height);form.BackColor=Color.FromArgb(244,246,248);form.ForeColor=Color.FromArgb(24,34,42);
+        {form.Text=title;form.Icon=AppIcon;form.Font=new Font("Microsoft YaHei UI",10);form.AutoScaleDimensions=new SizeF(96,96);form.AutoScaleMode=AutoScaleMode.Dpi;
+            form.ClientSize=new Size(width,height);form.BackColor=Color.FromArgb(245,247,246);form.ForeColor=Color.FromArgb(28,39,35);
             form.FormBorderStyle=FormBorderStyle.FixedDialog;form.MaximizeBox=false;form.StartPosition=FormStartPosition.CenterScreen;}
         public static Label Label(string text,int size,bool bold=false)
         {return new Label {Text=text,AutoSize=true,Font=new Font("Microsoft YaHei UI",size,bold?FontStyle.Bold:FontStyle.Regular),Margin=new Padding(0,0,0,5)};}
         public static Button Button(string text)
-        {return new Button {Text=text,AutoSize=true,MinimumSize=new Size(86,36),FlatStyle=FlatStyle.Flat,BackColor=Color.White,ForeColor=Accent,Padding=new Padding(8,3,8,3),Margin=new Padding(0)};}
+        {var button=new Button {Text=text,AutoSize=true,MinimumSize=new Size(86,38),FlatStyle=FlatStyle.Flat,BackColor=Color.FromArgb(235,239,237),ForeColor=Accent,Padding=new Padding(12,4,12,4),Margin=new Padding(0),Cursor=Cursors.Hand};
+            button.FlatAppearance.BorderSize=0;return button;}
+        public static void Primary(Button button) {button.BackColor=Accent;button.ForeColor=Color.White;}
         public static TableLayoutPanel Column(int padding)
         {return new TableLayoutPanel {Dock=DockStyle.Top,AutoSize=true,AutoSizeMode=AutoSizeMode.GrowAndShrink,ColumnCount=1,Padding=new Padding(padding),Margin=new Padding(0)};}
         public static void Fit(Form form,Control content)
@@ -45,7 +50,7 @@ namespace MicBridge
             var info=UI.Label("自动跟随 Mac 的实际收音状态，不占用任何快捷键。\n联动应用可在 Mac 端设置。UU 端口仍为 18768。",10);info.MaximumSize=new Size(445,0);info.ForeColor=UI.Muted;info.Margin=new Padding(0,18,0,12);root.Controls.Add(info);
             error.ForeColor=Color.FromArgb(170,70,30);error.MaximumSize=new Size(445,0);root.Controls.Add(error);
             var buttons=new FlowLayoutPanel {Dock=DockStyle.Top,AutoSize=true,FlowDirection=FlowDirection.RightToLeft,Margin=new Padding(0,12,0,0)};
-            var save=UI.Button("保存设置");var cancel=UI.Button("取消");save.BackColor=UI.Accent;save.ForeColor=Color.White;cancel.Margin=new Padding(0,0,10,0);
+            var save=UI.Button("保存设置");var cancel=UI.Button("取消");UI.Primary(save);cancel.Margin=new Padding(0,0,10,0);
             save.Click+=delegate {if(devices.SelectedIndex<0) {error.Text="请先选择一个麦克风。";return;}Value=new Preferences {Device=devices.SelectedIndex==0?"":devices.Text,Background=background.Checked};DialogResult=DialogResult.OK;};
             cancel.Click+=delegate {DialogResult=DialogResult.Cancel;};buttons.Controls.Add(save);buttons.Controls.Add(cancel);root.Controls.Add(buttons);AcceptButton=save;CancelButton=cancel;UI.Fit(this,root);
         }

@@ -22,12 +22,21 @@ func audioString(_ object: AudioObjectID, _ selector: AudioObjectPropertySelecto
     try checked(AudioObjectGetPropertyData(object, &address, 0, nil, &size, &value), "读取音频应用")
     return value?.takeRetainedValue() as String? ?? ""
 }
-func audioConsumers() throws -> [AudioConsumer] {
-    guard #available(macOS 14.2, *) else { throw MicError(message: "自动联动需要 macOS 14.2 或更新版本") }
+func blackHoleInputID() throws -> AudioObjectID {
     let devices = try audioIDs(AudioObjectID(kAudioObjectSystemObject), kAudioHardwarePropertyDevices)
     guard let input = devices.first(where: { (try? audioString($0, kAudioObjectPropertyName)) == "BlackHole 2ch" }) else {
         throw MicError(message: "未找到 BlackHole 2ch，请先安装虚拟声卡")
     }
+    return input
+}
+func useBlackHoleInput() throws {
+    var device = try blackHoleInputID()
+    var address = AudioObjectPropertyAddress(mSelector: kAudioHardwarePropertyDefaultInputDevice, mScope: kAudioObjectPropertyScopeGlobal, mElement: kAudioObjectPropertyElementMain)
+    try checked(AudioObjectSetPropertyData(AudioObjectID(kAudioObjectSystemObject), &address, 0, nil, UInt32(MemoryLayout<AudioObjectID>.size), &device), "设置 Mac 麦克风")
+}
+func audioConsumers() throws -> [AudioConsumer] {
+    guard #available(macOS 14.2, *) else { throw MicError(message: "自动联动需要 macOS 14.2 或更新版本") }
+    let input = try blackHoleInputID()
     let processes = try audioIDs(AudioObjectID(kAudioObjectSystemObject), kAudioHardwarePropertyProcessObjectList)
     var result = [AudioConsumer]()
     for process in processes {

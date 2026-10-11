@@ -1,135 +1,130 @@
-# MicBridge · 麦克风直连
+# MicBridge · 远程麦克风
 
-**照常唤起 Mac 的语音输入，Windows 麦克风自动开始传输；语音应用结束收音后自动关麦。**
+**用 Windows + UU 远程控制 Mac，照常唤起 Mac 语音输入，Windows 麦克风自动开始传输。**
 
-适合用 Windows + UU 远程控制 Mac，又希望继续使用 Mac 系统听写、语音输入或其他语音 App 的场景。
+本工具通过 **UU 远程的「端口直连 / 端口转发」**连接两端。UU 负责远程连接，MicBridge 负责传声音，豆包等 Mac 应用负责识别和输入文字。语音应用结束收音后，Windows 自动关麦；不用额外按 F8，不用给 MicBridge 配快捷键。
 
 ```text
-Windows 麦克风 → UU 端口直连 / 可信 TCP 隧道 → Mac → BlackHole 2ch → Mac 语音 App
+Windows 麦克风 → UU 远程 TCP 端口直连 → Mac 接收器 → BlackHole 2ch → 语音输入
 ```
 
-MicBridge 只传声音，不做语音识别，不粘贴文字，不需要 API Key。它是独立的开源工具，与网易 UU 没有隶属或合作关系。
+MicBridge 是独立的开源工具，与网易 UU 没有隶属或合作关系。
 
-## 下载
+## 第一次用：只下载这一套
 
-[**打开 Releases 下载最新版**](https://github.com/Carooot/micbridge/releases/latest)
+### [下载完整安装包 MicBridge-Setup.zip](https://github.com/Carooot/micbridge/releases/latest/download/MicBridge-Setup.zip)
 
-- **Windows**：`MicBridge-Windows-x64.zip`，解压后打开 `MicBridge.exe`。
-- **Mac**：`MicBridge-macOS-universal.zip`，解压后打开 `MicBridge.app`。
+一个压缩包已经包含：
 
-Windows 10/11 x64，.NET Framework 4.8；macOS 14.2+，Apple Silicon / Intel 通用程序。需要在 Mac 单独安装 [BlackHole 2ch](https://github.com/ExistentialAudio/BlackHole)。本项目不捆绑声卡驱动。
-
-发布包没有商业代码签名或 Apple 公证。macOS 若阻止打开，请按系统提示在“隐私与安全性”中仅允许这个应用，或自行从源码构建；不要关闭系统的整体安全保护。
-
-## 三步开始
-
-### 1. Mac 打开接收器
-
-打开 `MicBridge.app`。窗口应显示 **BlackHole 2ch 已就绪**。
-
-在语音 App 中选择 **BlackHole 2ch** 作为麦克风。使用系统默认输入的 App，可在“系统设置 → 声音 → 输入”里选择它。声音输出继续使用原来的扬声器或耳机。
-
-### 2. Windows 开启 UU 端口直连
-
-选中要连接的 Mac，添加并开启映射：
-
-| 项目 | 值 |
+| 文件 | 用途 |
 |---|---|
-| 协议 | TCP |
-| 目标地址 | `127.0.0.1` |
-| Mac 目标端口 | `18768` |
-| Windows 本地端口 | `18768` |
+| `MicBridge.exe` | Windows 程序，解压后直接打开，免安装 |
+| `Mac/MicBridge-Mac-Setup.pkg` | Mac 图形化安装器，一起准备接收器和 BlackHole 2ch |
+| `开始使用.txt` | 离线中文说明 |
 
-也可以用其他可信 TCP 隧道，将 Windows 的 `127.0.0.1:18768` 转发到 Mac 同一地址。无需连接码。
+不用在两台电脑分别搜索下载，也不用另外寻找声卡安装包或安装 Homebrew。**两台电脑都需要运行对应端程序**：在 Windows 下载整套包，用 UU 文件传输把 `Mac` 文件夹发到被控 Mac 即可。
 
-### 3. Windows 连接，照常使用 Mac 语音输入
+已经装过的用户：[只下载 Windows](https://github.com/Carooot/micbridge/releases/latest/download/MicBridge-Windows-x64.zip) · [只下载 Mac 安装器](https://github.com/Carooot/micbridge/releases/latest/download/MicBridge-Mac-Setup.pkg) · [全部版本](https://github.com/Carooot/micbridge/releases)
 
-打开 `MicBridge.exe`，点 **连接 Mac**。麦克风可在右上角“设置”中选择。
+## 首次设置
 
-在 Mac 用自己习惯的快捷键或按钮唤起语音输入，例如豆包输入法。MicBridge 检测到该应用开始读取 BlackHole 后，才通知 Windows 开麦；应用停止读取后，自动关闭 Windows 麦克风并清空播放队列。**无需再按 F8，也不用给 MicBridge 配快捷键。**
+### 1. 在被控 Mac 安装
 
-- Mac 设置中选择“跟随哪个应用”；检测到豆包输入法时默认跟随豆包，也可选择其他应用或所有使用 BlackHole 的应用。
-- 应用列表来自当前音频进程。如果没出现，先打开语音应用，再重新打开设置。
-- 两端均有“暂停联动”。默认关闭窗口后仍在后台待命；Windows 可从任务栏托盘退出，Mac 可用菜单退出。
-- 待命时只保持连接，不采集 Windows 麦克风。断线、锁屏或休眠会停止采集，恢复后手动重新连接。
+把包里的 `Mac` 文件夹传到 Mac，双击 `MicBridge-Mac-Setup.pkg`，按系统安装器提示完成。
 
-联动依据是应用的实际收音状态。如果某个应用一直占用 BlackHole，即使界面没有显示识别中，MicBridge 也会保持传输；可在设置中只跟随需要的应用，或暂停联动。识别、标点和文本输入仍由 Mac 语音应用负责。
+- 接收器会安装到“应用程序”。
+- 没有 BlackHole 2ch：安装器一起安装官方声卡，按系统提示重启后再继续。
+- 已有 BlackHole 2ch：自动跳过该组件，不覆盖声卡。
+- 安装需要 macOS 管理员确认。升级前先退出旧 MicBridge，首次安装前保存工作。
 
-## 从旧版升级
+从“应用程序”打开 **MicBridge**，点一次 **设为语音输入**。这会把 Mac 系统默认麦克风改为 BlackHole 2ch，不改变扬声器。如果语音应用自己指定了麦克风，也要在该应用内选择 BlackHole 2ch。
 
-**Windows 和 Mac 必须同时升级至 1.1.0。** 新版自动联动协议与 1.0 的按住说话协议不兼容。
+### 2. 在 Windows 的 UU 远程开启端口直连
 
-退出两端旧程序后再打开新版，UU 映射仍用 **18768**，BlackHole 设置不用改。不要让两个 Mac 接收器争用同一个端口。新版 Mac 接收器最低要求 macOS 14.2。
+在 UU 中选中要控制的 Mac，找到 **端口直连 / 端口转发**，添加并启用：
+
+| 项目 | 填写内容 |
+|---|---|
+| 协议 | **TCP** |
+| 目标地址 | **127.0.0.1** |
+| Mac 目标端口 | **18768** |
+| Windows 本地端口 | **18768** |
+
+这一步由 UU 建立两端通道，需要首次手动配置。MicBridge 不替你登录 UU、选择被控设备或开放公网端口。功能名称及位置以你的 UU 版本为准。
+
+### 3. 连接，照常说话
+
+Windows 双击 **MicBridge.exe**，点 **连接 Mac**。麦克风可在“设置”中更换；“首次使用 / 连接帮助”内也有上面的安装步骤和端口表。
+
+照常用自己的快捷键或按钮唤起 Mac 语音输入。MicBridge 检测到所选应用开始读取 BlackHole 后，才打开 Windows 麦克风；应用停止读取后，自动关闭麦克风并清空播放队列。
+
+以后使用只需打开两端 MicBridge，保持 UU 映射开启，连接一次。
+
+## 设置与使用
+
+- **Mac 跟随应用**：检测到豆包输入法时默认跟随豆包，也可换成其他语音应用或所有使用 BlackHole 的应用。列表来自当前音频进程，没出现时先打开目标应用，再重新打开设置。
+- **暂停联动**：两端都可暂停。Windows 窗口、程序文件和任务栏托盘使用统一的麦克风图标，托盘也可恢复窗口或退出。
+- **后台待命**：默认关闭窗口后仍待命，可在设置关闭。待命不采集 Windows 麦克风。
+- **断线 / 锁屏 / 休眠**：停止采集，恢复后手动重新连接。
+- **持续收音的应用**：联动依据是实际输入流。应用若一直占用 BlackHole，MicBridge 也会持续传输，可只跟随需要的应用或点“暂停联动”。
+
+## 系统要求与升级
+
+Windows 10/11 x64 + .NET Framework 4.8；macOS **14.2 或更新**，Apple Silicon / Intel 通用。
+
+**1.2 与 1.1 的音频协议兼容。** 已经跑通 1.1 的用户可以直接更新 Windows 界面；从 1.0 或早期原型升级则需要同时更新两端。端口一直为 **18768**，不要同时打开两个 Mac 接收器。
+
+整合安装器暂未商业签名或 Apple 公证。如果系统阻止，请核对下载来源和校验值，在系统“隐私与安全性”中仅允许这个安装器，或自行构建；不要关闭系统整体安全保护。BlackHole 上游组件的签名不等于整个 MicBridge 安装包已公证。
 
 ## 常见问题
 
-| 现象 | 检查方式 |
+| 现象 | 怎么处理 |
 |---|---|
-| 连接不上 | 确认 Mac 接收器运行、UU 映射已开启、两边端口都是 18768。 |
-| 提示端口被占用 | 退出旧接收器或另一份 MicBridge，再重新打开。 |
-| Windows 音量条不动 | 先唤起 Mac 语音输入；确认两端未暂停、Mac 跟随了正确的应用、该应用使用 BlackHole，并允许 Windows 桌面应用访问麦克风。 |
-| Mac 音量条动，App 没反应 | 在该 App 中选 BlackHole 2ch，并按要求授予该 App 麦克风权限。 |
-| 黑洞声卡不可用 | 安装 BlackHole 2ch，按驱动要求完成重启，再点“重新检查声卡”。 |
-| 结束说话后仍传输 | 检查语音应用是否还在收音。MicBridge 跟随输入流，不根据静音猜测结束；可点“暂停联动”。 |
-| 网络断开或积压 | 工具会关闭麦克风。恢复隧道后手动重新连接。 |
+| 连不上 Mac | 确认接收器已打开、UU 映射已启用、两边都是 18768。Windows 窗口的“连接帮助”有填写值。 |
+| 提示端口被占用 | 退出另一份旧接收器，再打开新版。 |
+| 已安装但找不到 BlackHole | 首次装驱动后按提示重启，再打开 MicBridge；设置里可重新检查声卡。 |
+| Windows 音量条不动 | 先唤起 Mac 语音输入，确认跟随了正确应用、未暂停；在 Windows 隐私设置允许桌面应用使用麦克风。 |
+| Mac 收到声音但没出文字 | 确认语音应用使用 BlackHole，且已授予它麦克风权限。识别和文字输入由该应用负责。 |
+| 结束说话还在传输 | 检查应用是否仍在收音；MicBridge 不根据安静与否猜测结束，可点暂停。 |
+| 网络中断或积压 | 麦克风会关闭，恢复隧道后手动重新连接。 |
 
-## 隐私与信任范围
+## 隐私与连接范围
 
-- 不落盘保存音频，不调用识别云服务，不收集遥测，不读写剪贴板。
-- Windows 每次启动均处于断开状态。连接后，只有 Mac 请求且未暂停时才打开麦克风；不读取键盘或要求辅助功能权限。
-- 接收端只监听 **127.0.0.1**，不直接监听局域网或公网。
-- 按设计**不做额外身份认证或应用层加密**，依赖你配置的 UU 或其他可信隧道。任何能访问该本地转发端口的程序都可以连接；不要另行公开映射到公网。
-- 48 kHz、16 bit、单声道 PCM，讲话时约 96 KB/s。检测、网络和设备启动会带来少量延迟。停止检测含约 250 ms 防抖，避免应用切换音频流时频繁开关麦克风；不预先录音。
+不保存录音，不调用识别云服务，不收集遥测，不读写剪贴板，不监听键盘。Windows 启动时保持断开，连接后只按 Mac 请求和暂停状态开麦。
 
-## 构建与测试
+接收器只监听 **127.0.0.1**，不监听局域网或公网。不使用连接码，也不增加应用层加密，访问控制依赖 UU 或你自己配置的可信 TCP 隧道；任何能访问本地转发端口的程序都可能连接，不要把它另行公开到公网。
 
-只使用系统框架和 Python 标准库，不需要第三方运行库或识别模型。
+音频为 48 kHz / 16 bit / 单声道 PCM，传输时约 96 KB/s。检测、网络及麦克风启动会带来少量延迟；停止检测包含约 250 ms 防抖，不提前录音。
 
-### macOS
+## 构建与验证
 
-安装 Xcode Command Line Tools 和 Python 3，然后：
+应用只使用系统框架，不捆绑识别模型或第三方运行库。
 
 ```sh
+# Mac：Xcode Command Line Tools + Python 3
 python3 scripts/build.py mac
 python3 tests/integration.py
-```
+python3 scripts/package.py mac
+python3 scripts/mac_installer.py
+python3 tests/installer.py
 
-输出：`build/mac/MicBridge.app`。构建脚本同时生成 arm64 / x86_64 二进制并合并，运行协议和缓冲测试。
-
-已安装 BlackHole 时，可额外验证音频回读、停止后的静音和实际输入流驱动的联动：
-
-```sh
+# 有 BlackHole 的 Mac：真实输入回读与自动开关
 python3 tests/integration.py --audio
 python3 tests/automatic.py
-```
 
-此测试向 BlackHole 发送生成的测试音，并从 BlackHole 输入读取强度与频率，不使用物理麦克风，不保存录音。请在其他应用未使用 BlackHole 时运行。自动联动测试还确认接收器的输出不会触发开麦循环。
-
-### Windows
-
-安装 Python 3，使用 .NET Framework 4.8 自带的编译器：
-
-```powershell
+# Windows：Python 3 + .NET Framework 4.8
 python scripts/build.py windows
-```
-
-输出：`build/windows/MicBridge.exe`。脚本也会运行队列、自动开关控制、设置保存、真实 TCP 通知、协议边界和工作线程退出测试，并导出窗口预览。
-
-### 打包
-
-```sh
-python scripts/package.py mac
 python scripts/package.py windows
 ```
 
-ZIP 输出在 `dist/`。GitHub Actions 在提交和拉取请求时执行两端构建与测试；发布 Release 时，测试通过后自动附上两端安装包和校验文件。
+`mac_installer.py` 从官方固定版本下载并校验 BlackHole，将独立组件、许可和对应源码加入安装器。`tests/installer.py` 默认只检查文件与组件选择；`--install` 仅允许在 GitHub 的临时 Mac 测试机中运行，验证从未安装到已安装后的自动跳过，不自动重启。
 
-## 实现与验证范围
+原始图标可在 Mac 用 `python3 scripts/icons.py` 重新生成。Windows 构建会输出真实窗口预览，覆盖主窗口、设置和连接帮助。
 
-Windows 使用 WinMM 录音和有上限的音频队列；Mac 通过 CoreAudio 读取进程的输入流状态，使用 Network.framework 通信、AudioQueue 输出到 BlackHole。协议说明见 [PROTOCOL.md](PROTOCOL.md)。
+GitHub Actions 执行两端构建、协议测试、Windows 实际 TCP 控制、Mac 安装测试及整套包核对。发布 Release 后自动上传文件和 SHA-256 校验。协议见 [PROTOCOL.md](PROTOCOL.md)。
 
-基础音频转发版本已由使用者在 Windows → UU → Mac 场景确认可用。1.1 版已实测豆包输入流的开始/停止变化，自动化验证覆盖协议分片、待命、自动开始/停止、断线、队列清空、BlackHole 回读及输出不误触发输入。新版仍需要不同 Windows 麦克风、语音应用和长期弱网的真实设备反馈。
+自动跟随版已由使用者在 Windows → UU → Mac → 豆包场景确认跑通。不同声卡、显示缩放、语音应用和长期弱网仍欢迎反馈。
 
-## 开源协议
+## 开源许可
 
-[MIT](LICENSE)。BlackHole 是单独安装的外部项目，遵循其自己的开源协议。反馈问题时请描述系统、麦克风、连接步骤和报错，避免上传私人录音或账号凭据。
+MicBridge 和原创图标采用 [MIT](LICENSE)。随 Mac 安装器分发的 BlackHole 是独立的 GPL-3.0 项目，其许可与完整对应源码一起提供，详见 [THIRD-PARTY.md](THIRD-PARTY.md)。
