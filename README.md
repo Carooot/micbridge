@@ -118,7 +118,7 @@ python scripts/package.py mac
 python scripts/package.py windows
 ```
 
-ZIP 输出在 `dist/`。GitHub Actions 在提交和拉取请求时执行两端构建与测试。
+ZIP 输出在 `dist/`。GitHub Actions 在提交和拉取请求时执行两端构建与测试；发布 Release 时，测试通过后自动附上两端安装包和校验文件。
 
 ## 实现与验证范围
 
