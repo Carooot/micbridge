@@ -1,5 +1,7 @@
 import Cocoa
 
+private let appVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "开发版"
+
 private func label(_ text: String, size: CGFloat = 13, bold: Bool = false) -> NSTextField {
     let field = NSTextField(wrappingLabelWithString: text)
     field.font = .systemFont(ofSize: size, weight: bold ? .semibold : .regular)
@@ -23,16 +25,18 @@ extension Receiver {
     func makeWindow() {
         let menu = NSMenu(), appMenu = NSMenu(), item = NSMenuItem()
         item.submenu = appMenu; menu.addItem(item)
+        appMenu.addItem(withTitle: "关于 MicBridge \(appVersion)…", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "").target = NSApp
+        appMenu.addItem(.separator())
         appMenu.addItem(withTitle: "显示接收窗口", action: #selector(showWindow), keyEquivalent: "0").target = self
         appMenu.addItem(withTitle: "设置…", action: #selector(showSettings), keyEquivalent: ",").target = self
         appMenu.addItem(.separator())
         appMenu.addItem(withTitle: "退出 MicBridge", action: #selector(quit), keyEquivalent: "q").target = self
         NSApp.mainMenu = menu
         window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 540, height: 430), styleMask: [.titled, .closable, .miniaturizable], backing: .buffered, defer: false)
-        window.title = "MicBridge · Mac"; window.delegate = self; window.isReleasedWhenClosed = false
+        window.title = "MicBridge \(appVersion) · Mac"; window.delegate = self; window.isReleasedWhenClosed = false
         let root = column(spacing: 22), header = NSStackView()
         let brand = column(spacing: 4); brand.addArrangedSubview(label("MicBridge", size: 24, bold: true))
-        let subtitle = label("Mac 接收器"); subtitle.textColor = .secondaryLabelColor; brand.addArrangedSubview(subtitle)
+        let subtitle = label("Mac 接收器 · v\(appVersion)"); subtitle.textColor = .secondaryLabelColor; brand.addArrangedSubview(subtitle)
         header.addArrangedSubview(brand); header.addArrangedSubview(NSView())
         header.addArrangedSubview(NSButton(title: "设置…", target: self, action: #selector(showSettings)))
         header.widthAnchor.constraint(equalToConstant: 492).isActive = true; root.addArrangedSubview(header)
@@ -62,7 +66,7 @@ extension Receiver {
     @objc func showSettings() {
         if let panel = settingsPanel { panel.makeKeyAndOrderFront(nil); return }
         let panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 540, height: 360), styleMask: [.titled, .closable], backing: .buffered, defer: false)
-        panel.title = "MicBridge 设置"; panel.isReleasedWhenClosed = false; panel.delegate = self; settingsPanel = panel
+        panel.title = "MicBridge \(appVersion) 设置"; panel.isReleasedWhenClosed = false; panel.delegate = self; settingsPanel = panel
         let root = column(spacing: 16)
         root.addArrangedSubview(label("自动联动", size: 21, bold: true))
         root.addArrangedSubview(label("仅在所选应用读取 BlackHole 麦克风时，通知 Windows 开麦。"))
@@ -85,6 +89,8 @@ extension Receiver {
         backgroundCheck.state = UserDefaults.standard.object(forKey: "background") as? Bool == false ? .off : .on; root.addArrangedSubview(backgroundCheck)
         let network = label("UU 端口直连  ·  TCP\nWindows 本地 18768 → Mac 127.0.0.1:18768", size: 12)
         network.textColor = .secondaryLabelColor; root.addArrangedSubview(network)
+        let version = label("版本 \(appVersion)\n安装位置：\(Bundle.main.bundlePath)", size: 12)
+        version.textColor = .secondaryLabelColor; root.addArrangedSubview(version)
         let buttons = NSStackView()
         buttons.addArrangedSubview(NSButton(title: "设为语音输入", target: self, action: #selector(prepareInput)))
         buttons.addArrangedSubview(NSButton(title: "重新检查声卡", target: self, action: #selector(checkDevice)))

@@ -9,7 +9,7 @@ import shutil
 import subprocess
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-VERSION = '1.2.0'
+VERSION = '1.2.1'
 
 def run(*args):
     subprocess.run([str(a) for a in args], cwd=ROOT, check=True)
@@ -28,7 +28,7 @@ def mac():
     (bundle/'Contents/Info.plist').write_bytes(plistlib.dumps({
         'CFBundleExecutable':'MicBridge', 'CFBundleIdentifier':'io.github.carooot.micbridge',
         'CFBundleName':'MicBridge', 'CFBundleDisplayName':'MicBridge', 'CFBundlePackageType':'APPL',
-        'CFBundleShortVersionString':VERSION, 'CFBundleVersion':'3', 'CFBundleIconFile':'MicBridge',
+        'CFBundleShortVersionString':VERSION, 'CFBundleVersion':'4', 'CFBundleIconFile':'MicBridge',
         'LSMinimumSystemVersion':'14.2', 'NSHighResolutionCapable':True,
     }))
     (bundle/'Contents/Resources').mkdir(exist_ok=True)

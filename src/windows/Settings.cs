@@ -7,11 +7,12 @@ namespace MicBridge
 {
     internal static class UI
     {
+        public static readonly string Version=Assembly.GetExecutingAssembly().GetName().Version.ToString(3);
         public static readonly Color Accent=Color.FromArgb(21,94,83),Muted=Color.FromArgb(100,111,116),Tint=Color.FromArgb(233,242,238);
         public static readonly Icon AppIcon=new Icon(Assembly.GetExecutingAssembly().GetManifestResourceStream("MicBridge.ico"),32,32);
         public static readonly Image Logo=Image.FromStream(Assembly.GetExecutingAssembly().GetManifestResourceStream("MicBridge.png"));
         public static void Window(Form form,string title,int width,int height)
-        {form.Text=title;form.Icon=AppIcon;form.Font=new Font("Microsoft YaHei UI",10);form.AutoScaleDimensions=new SizeF(96,96);form.AutoScaleMode=AutoScaleMode.Dpi;
+        {form.Text=title+" · v"+Version;form.Icon=AppIcon;form.Font=new Font("Microsoft YaHei UI",10);form.AutoScaleDimensions=new SizeF(96,96);form.AutoScaleMode=AutoScaleMode.Dpi;
             form.ClientSize=new Size(width,height);form.BackColor=Color.FromArgb(245,247,246);form.ForeColor=Color.FromArgb(28,39,35);
             form.FormBorderStyle=FormBorderStyle.FixedDialog;form.MaximizeBox=false;form.StartPosition=FormStartPosition.CenterScreen;}
         public static Label Label(string text,int size,bool bold=false)
@@ -48,6 +49,7 @@ namespace MicBridge
             load(current.Device);refresh.Click+=delegate {load(devices.Text);};
             background.Checked=current.Background;root.Controls.Add(background);
             var info=UI.Label("自动跟随 Mac 的实际收音状态，不占用任何快捷键。\n联动应用可在 Mac 端设置。UU 端口仍为 18768。",10);info.MaximumSize=new Size(445,0);info.ForeColor=UI.Muted;info.Margin=new Padding(0,18,0,12);root.Controls.Add(info);
+            var version=UI.Label("版本 "+UI.Version+"\n运行位置："+Application.ExecutablePath,9);version.MaximumSize=new Size(445,0);version.ForeColor=UI.Muted;root.Controls.Add(version);
             error.ForeColor=Color.FromArgb(170,70,30);error.MaximumSize=new Size(445,0);root.Controls.Add(error);
             var buttons=new FlowLayoutPanel {Dock=DockStyle.Top,AutoSize=true,FlowDirection=FlowDirection.RightToLeft,Margin=new Padding(0,12,0,0)};
             var save=UI.Button("保存设置");var cancel=UI.Button("取消");UI.Primary(save);cancel.Margin=new Padding(0,0,10,0);

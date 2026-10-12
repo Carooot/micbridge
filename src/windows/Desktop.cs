@@ -29,7 +29,7 @@ namespace MicBridge
             var header=new TableLayoutPanel {Dock=DockStyle.Top,AutoSize=true,ColumnCount=3,Margin=new Padding(0,0,0,24)};
             header.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));header.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
             var logo=new PictureBox {Image=UI.Logo,SizeMode=PictureBoxSizeMode.Zoom,Size=new Size(48,48),Margin=new Padding(0,0,12,0),AccessibleName="MicBridge 图标"};
-            var brand=UI.Column(0);brand.Controls.Add(UI.Label("MicBridge",20,true));var sub=UI.Label("远程麦克风",10);sub.ForeColor=UI.Muted;brand.Controls.Add(sub);
+            var brand=UI.Column(0);brand.Controls.Add(UI.Label("MicBridge",20,true));var sub=UI.Label("远程麦克风 · v"+UI.Version,10);sub.ForeColor=UI.Muted;brand.Controls.Add(sub);
             header.Controls.Add(logo,0,0);header.Controls.Add(brand,1,0);header.Controls.Add(settings,2,0);root.Controls.Add(header);
             var card=UI.Column(22);card.BackColor=Color.White;card.Margin=new Padding(0,0,0,16);
             status.ForeColor=UI.Accent;status.BackColor=UI.Tint;status.Padding=new Padding(9,4,9,4);card.Controls.Add(status);
@@ -48,10 +48,10 @@ namespace MicBridge
             try {if(File.Exists(preferenceFile)) preferences=Preferences.Decode(File.ReadAllText(preferenceFile));}
             catch(IOException) {notice.Text="设置未能读取，本次使用默认麦克风。";}catch(UnauthorizedAccessException) {notice.Text="设置未能读取，本次使用默认麦克风。";}
             connect.Click+=delegate {ToggleConnection();};pause.Click+=delegate {demand.Pause(!demand.Paused);ApplyCapture();};settings.Click+=delegate {OpenSettings();};
-            var menu=new ContextMenuStrip();menu.Items.Add("显示窗口",null,delegate {ShowWindow();});
+            var menu=new ContextMenuStrip();menu.Items.Add("MicBridge v"+UI.Version).Enabled=false;menu.Items.Add("显示窗口",null,delegate {ShowWindow();});
             menu.Items.Add("暂停 / 恢复联动",null,delegate {if(connection!=null) {demand.Pause(!demand.Paused);ApplyCapture();}});
             menu.Items.Add("退出",null,delegate {exiting=true;Close();});
-            tray=new NotifyIcon {Icon=UI.AppIcon,Text="MicBridge · 未连接",Visible=true,ContextMenuStrip=menu};
+            tray=new NotifyIcon {Icon=UI.AppIcon,Text="MicBridge "+UI.Version+" · 未连接",Visible=true,ContextMenuStrip=menu};
             tray.DoubleClick+=delegate {ShowWindow();};
             timer.Tick+=delegate {meter.Value=Math.Min(32768,peak);peak=0;if(recorder!=null) elapsed.Text="正在传输  "+(DateTime.UtcNow-started).ToString(@"mm\:ss");};timer.Start();
             SystemEvents.SessionSwitch+=SessionChanged;SystemEvents.PowerModeChanged+=PowerChanged;
@@ -67,7 +67,7 @@ namespace MicBridge
             headline.Text=recorder!=null?"正在传输声音":connection==null?"连接你的 Mac":demand.Paused?"麦克风已暂停":"等你开口";
             detail.Text=recorder!=null?"继续使用 Mac 的语音快捷键。语音应用结束收音后，会自动关闭麦克风。":connection==null?"通过 UU 端口直连，连接后自动跟随 Mac 的语音输入。":demand.Paused?"已关闭麦克风。恢复后，继续跟随 Mac 的收音状态。":"照常唤起豆包或其他语音应用，无需额外按键。";
             if(recorder==null) elapsed.Text="麦克风关闭";
-            tray.Text=recorder!=null?"MicBridge · 正在传输声音":"MicBridge · 麦克风关闭";
+            tray.Text="MicBridge "+UI.Version+(recorder!=null?" · 正在传输声音":" · 麦克风关闭");
         }
         async void ToggleConnection()
         {

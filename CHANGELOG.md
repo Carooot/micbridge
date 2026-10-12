@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.1 — 2026-10-12
+
+- Show the installed version in both main windows, settings and the Windows tray; add the standard Mac About menu.
+- Show the running application's location in settings so duplicate downloads can be distinguished from the installed copy.
+- Read displayed versions from the app's own metadata. Audio behavior and protocol remain compatible with 1.1.0 and 1.2.0.
+
 ## 1.2.0 — 2026-10-12
 
 - Refreshed the Windows window with a focused connection panel, consistent microphone icon, tray icon, executable metadata and a built-in first-connection guide.
