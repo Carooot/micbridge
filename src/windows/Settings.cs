@@ -24,8 +24,14 @@ namespace MicBridge
         public static TableLayoutPanel Column(int padding)
         {return new TableLayoutPanel {Dock=DockStyle.Top,AutoSize=true,AutoSizeMode=AutoSizeMode.GrowAndShrink,ColumnCount=1,Padding=new Padding(padding),Margin=new Padding(0)};}
         public static void Fit(Form form,Control content)
-        {content.SizeChanged+=delegate {if(content.Height>0) form.ClientSize=new Size(form.ClientSize.Width,content.Height);};
-            form.Shown+=delegate {form.ClientSize=new Size(form.ClientSize.Width,content.Height);};}
+        {
+            Action fit=delegate {
+                // Minimized client bounds are transient; never copy their width into the restore size.
+                if(form.WindowState!=FormWindowState.Normal || content.Height<=0 || form.ClientSize.Height<=0) return;
+                form.Height+=content.Height-form.ClientSize.Height;
+            };
+            content.SizeChanged+=delegate {fit();};form.Shown+=delegate {fit();};
+        }
         public static void Snapshot(Form form,string path)
         {using(var bitmap=new Bitmap(form.Width,form.Height)) {form.DrawToBitmap(bitmap,new Rectangle(Point.Empty,form.Size));bitmap.Save(path,System.Drawing.Imaging.ImageFormat.Png);}}
     }

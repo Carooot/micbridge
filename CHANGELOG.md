@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.2 — 2026-10-12
+
+- Keep the Windows window width intact after minimizing and restoring. Shared content fitting now adjusts only height and ignores minimized bounds.
+- Added a native Windows regression check for minimize/restore with lock notices, tray hide/show and 100–200% layout scaling.
+- Audio transport and lock/sleep behavior are unchanged; the Windows update works with Mac 1.1 and 1.2 receivers.
+
 ## 1.2.1 — 2026-10-12
 
 - Show the installed version in both main windows, settings and the Windows tray; add the standard Mac About menu.

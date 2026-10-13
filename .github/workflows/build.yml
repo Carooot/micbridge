@@ -41,6 +41,8 @@ jobs:
           persist-credentials: false
       - name: Build sender and test queue and protocol
         run: python scripts/build.py windows
+      - name: Exercise window scaling and restore
+        run: python tests/layout.py
       - name: Package
         run: python scripts/package.py windows
       - uses: actions/upload-artifact@v4
@@ -48,6 +50,7 @@ jobs:
           name: MicBridge-Windows
           path: dist/*
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: Windows-UI-previews
           path: build/windows/preview/*.png
